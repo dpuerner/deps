@@ -10,7 +10,7 @@ INTERFACE if_ixml_node PUBLIC.
         new_child TYPE REF TO if_ixml_node,
     create_iterator
       IMPORTING
-        depth TYPE i
+        depth TYPE i optional
       RETURNING
         VALUE(rval) TYPE REF TO if_ixml_node_iterator,
     get_attributes
