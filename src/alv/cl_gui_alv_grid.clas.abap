@@ -186,7 +186,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
       mc_fc_expmdb TYPE string VALUE '1',
       mc_fc_f4 TYPE string VALUE '1',
       mc_fc_loc_delete_row TYPE string VALUE 'x'.
-
+	
+	DATA:
+	  mt_roid TYPE lvc_t_roid.
+	
     CLASS-METHODS offline RETURNING VALUE(off) TYPE i.
 
     METHODS:
