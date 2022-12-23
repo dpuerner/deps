@@ -8,6 +8,11 @@ INTERFACE if_ixml_node PUBLIC.
     append_child
       IMPORTING
         new_child TYPE REF TO if_ixml_node,
+    create_iterator
+      IMPORTING
+        depth TYPE I
+      RETURNING
+        rval TYPE REF TO if_ixml_node_iterator,
     get_attributes
       RETURNING
         VALUE(map) TYPE REF TO if_ixml_named_node_map,
