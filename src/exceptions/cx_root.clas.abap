@@ -7,9 +7,10 @@ CLASS cx_root DEFINITION ABSTRACT PUBLIC.
 
     ALIASES get_longtext FOR if_message~get_longtext.
     ALIASES get_text FOR if_message~get_text.
-
+	
     DATA textid TYPE c LENGTH 32.
     DATA previous TYPE REF TO cx_root.
+	DATA kernel_errid TYPE s380errid READ-ONLY.
     DATA is_resumable TYPE abap_bool.
 
     METHODS get_source_position
