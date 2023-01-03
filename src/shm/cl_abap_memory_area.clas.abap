@@ -73,3 +73,65 @@ private section.
 *"* private components of class CL_ABAP_MEMORY_AREA
 *"* do not include other source files here!!!
 ENDCLASS.
+
+
+
+CLASS CL_ABAP_MEMORY_AREA IMPLEMENTATION.
+
+
+METHOD get_handle_by_data.
+
+  DATA:
+    dref TYPE REF TO data.
+
+  GET REFERENCE OF dataobject INTO dref.
+
+  handle = _get_handle_by_dref( dref ).
+
+  IF handle IS INITIAL.
+*   we have to return the imode-handle
+    handle = cl_imode_area=>get_imode_handle( ).
+  ENDIF.
+
+ENDMETHOD.
+
+
+METHOD get_handle_by_dref.
+
+  IF dref IS INITIAL.
+    RAISE EXCEPTION TYPE cx_shm_initial_reference.
+  ELSE.
+    handle = _get_handle_by_dref( dref ).
+
+    IF handle IS INITIAL.
+*     we have to return the imode-handle
+      handle = cl_imode_area=>get_imode_handle( ).
+    ENDIF.
+  ENDIF.
+
+ENDMETHOD.
+
+
+METHOD get_handle_by_oref.
+
+  IF oref IS INITIAL.
+    RAISE EXCEPTION TYPE cx_shm_initial_reference.
+  ELSE.
+    handle = _get_handle_by_oref( oref ).
+
+    IF handle IS INITIAL.
+*     we have to return the imode-handle
+      handle = cl_imode_area=>get_imode_handle( ).
+    ENDIF.
+  ENDIF.
+
+ENDMETHOD.
+
+
+method _GET_HANDLE_BY_DREF by kernel module ab_ShmkmGetHandleByDref fail.
+endmethod.
+
+
+method _GET_HANDLE_BY_OREF by kernel module ab_ShmkmGetHandleByOref fail.
+endmethod.
+ENDCLASS.
