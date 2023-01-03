@@ -949,1135 +949,153 @@ CLASS CL_GUI_ALV_GRID_BASE IMPLEMENTATION.
 
 
 method ALV_EXPORT_VIA_FE.
-* ...
-
 
 endmethod.
 
 
 METHOD APPEND_ROWS_BASE .
 
-  CALL METHOD CALL_METHOD
-  EXPORTING
-       METHOD    = 'AppendRows'
-       P_COUNT   = 1
-       P1        = ROW_COUNT
-   EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 
 ENDMETHOD.
 
 
 method CLEAR_COLOR_INFO.
 
-  if m_acc_mode is not initial.            "TRUE
-    CALL METHOD CALL_METHOD
-      EXPORTING
-        METHOD = 'ClearColorInfo'
-      EXCEPTIONS
-        OTHERS = 1.
-  endif.
 
 endmethod.
 
 
 METHOD CLEAR_SELECTION .
 
-  CALL METHOD CALL_METHOD
-  EXPORTING
-       METHOD    = 'ClearSelection'
-   EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 
 ENDMETHOD.
 
 
 method CLEAR_SYMBOL_INFO.
 
-  if m_acc_mode is not initial.            "TRUE
-    CALL METHOD CALL_METHOD
-      EXPORTING
-        METHOD = 'ClearColorInfo'
-      EXCEPTIONS
-        OTHERS = 1.
-  endif.
 
 endmethod.
 
 
 METHOD constructor.
 
-  DATA clsid(80).
-  CONSTANTS: con_hex02      TYPE x VALUE '02'.    " Druckmodus
-  IF NOT activex IS INITIAL.
-    clsid = 'SAPGUI.GridViewCtrl.1'.
-  ENDIF.
-
-  IF NOT javabean IS INITIAL.
-    clsid = 'com.sap.components.controls.grid.SapGrid'.
-  ENDIF.
-  "
-  IF NOT cl_gui_alv_grid=>offline( ) IS INITIAL.
-* if sy-subty o con_hex02.
-    CLEAR clsid.
-  ENDIF.
-
-  CALL METHOD super->constructor
-    EXPORTING
-      clsid      = clsid
-      shellstyle = shellstyle
-      lifetime   = lifetime
-      parent     = parent
-      name       = name.
-
-  m_gui_type = get_gui_type( ).
-
-  CALL FUNCTION 'SAPGUI_GET_WAN_FLAG'
-    IMPORTING
-      wan_flag = m_wan_flag.
-
-  CALL METHOD cl_gui_datapondemand=>get_is_avail
-    RECEIVING
-      is_supported = m_dp_on_demand_avail.
-
-  CALL METHOD cl_gui_datapondemand=>get_is_writeable
-    RECEIVING
-      is_supported = m_dp_on_demand_writable.
-
-  CALL FUNCTION 'CAT_IS_ACTIVE'
-    IMPORTING
-      active    = catt_active
-      recording = catt_recording
-      playback  = catt_playback.
-
-*... RFC Call of ALV Y6BK075863
-  data: is_gui_available type abap_bool.
-  call function 'GUI_IS_AVAILABLE'
-   IMPORTING
-     RETURN        = is_gui_available.
-
-*... submit <report> list to memory
-  data: list_to_memory   type abap_bool.
-  system-call kernel_info 'LIST_TO_MEMORY' list_to_memory.
-
-  if sy-subty o con_hex02
-  or sy-batch = 'X'
-  or list_to_memory   eq abap_true    "Y6BK075863
-  or is_gui_available eq abap_false.
-    m_batch_mode = 'X'.
-  ENDIF.
-
-  CALL METHOD cl_gui_cfw=>subscribe
-    EXPORTING
-      shellid = h_control-shellid
-      ref     = me.
-
-* currently the shellid is used as the "guid" to spare the
-*  function call.
-  m_guid = h_control-shellid.
-* once this is dropped, make sure to transport the guid to the frontend!
-
-
-  IF m_batch_mode IS INITIAL AND cl_gui_alv_grid=>offline( ) IS INITIAL.
-* Register cached properties
-    CALL METHOD register_cached_property
-      EXPORTING
-        property = 'CurrentCellRow'.
-    CALL METHOD register_cached_property
-      EXPORTING
-        property = 'CurrentCellCol'.
-    CALL METHOD register_cached_property
-      EXPORTING
-        property = 'FirstVisibleRow'.
-    CALL METHOD register_cached_property
-      EXPORTING
-        property = 'FirstVisibleRowID'.
-    CALL METHOD register_cached_property
-      EXPORTING
-        property = 'FirstVisibleColID'.
-    CALL METHOD register_cached_property
-      EXPORTING
-        property = 'CurrentCellRowID'.
-    CALL METHOD register_cached_property
-      EXPORTING
-        property = 'CurrentCellColID'.
-    CALL METHOD register_cached_property
-      EXPORTING
-        property = 'CurrentCellRowIDNumeric'.
-    CALL METHOD register_cached_property
-      EXPORTING
-        property = 'CurrentCellRowIDSubNumeric'.
-    CALL METHOD register_cached_property
-      EXPORTING
-        property = 'RowsMoved'.
-    CALL METHOD register_cached_property
-      EXPORTING
-        property = 'GridModified'.
-    CALL METHOD register_cached_property
-      EXPORTING
-        property = 'CurrentCellText'.
-  ENDIF.
-
-*data cont type ref to cl_gui_dialogbox_container.
-  m_dbgparent = debugparent.
-
-* set textpool buffer for frontend transfer.
-  IF ( me->www_active = 'X' ).
-    DATA wa_txtpool TYPE lvc_s_txtp.
-
-* F1-Help.
-    wa_txtpool-tag = 'F1'. wa_txtpool-text = 'F1-Hilfe'(001).
-                                                            "F1-Help"
-    APPEND wa_txtpool TO mt_textpool.
-    wa_txtpool-tag = 'F1ICON'. wa_txtpool-text = icon_information.
-                                                            "F1-Icon.
-    APPEND wa_txtpool TO mt_textpool.
-
-* Mark all button
-    wa_txtpool-tag ='MARKALL'. wa_txtpool-text = text-024. "optimal
-    APPEND wa_txtpool TO mt_textpool.
-
-* paging
-    wa_txtpool-tag ='PAGE'.
-    wa_txtpool-text = 'Seite'(005).
-    APPEND wa_txtpool TO mt_textpool.
-
-    wa_txtpool-tag ='FIRSTPAGE'.
-    wa_txtpool-text = 'Erste Seite'(030).
-    APPEND wa_txtpool TO mt_textpool.
-    wa_txtpool-tag ='LASTPAGE'.
-    wa_txtpool-text = 'Letzte Seite'(031).
-    APPEND wa_txtpool TO mt_textpool.
-    wa_txtpool-tag ='PREVPAGE'.
-    wa_txtpool-text = 'Vorherige Seite'(032).
-    APPEND wa_txtpool TO mt_textpool.
-    wa_txtpool-tag ='NEXTPAGE'.
-    wa_txtpool-text = 'Nächste Seite'(033).
-    APPEND wa_txtpool TO mt_textpool.
-
-    IF cl_gui_alv_grid=>offline( ) IS INITIAL.
-      CALL METHOD set_textpool.
-    ENDIF.
-
-  ENDIF.
-
-* check Accessibility mode
-  CALL FUNCTION 'GET_ACCESSIBILITY_MODE'
-    IMPORTING
-      accessibility     = m_acc_mode
-    EXCEPTIONS
-      its_not_available = 1
-      OTHERS            = 2.
-
-  CALL METHOD CL_GUI_FRONTEND_SERVICES=>CHECK_GUI_SUPPORT
-    EXPORTING
-      COMPONENT            = 'gridview'
-      FEATURE_NAME         = 'cacheselectedrows'
-    RECEIVING
-      RESULT               = m_cache_selected_rows
-    EXCEPTIONS
-      others               = 1.
 
 ENDMETHOD.
 
 
 method CREATE_VIEW_CRYSTAL .
-* ...
- data alvexp_control type ref to lcl_alvexp_control.
- IF m_alvexp_control IS INITIAL.
-    create object alvexp_control exporting i_parent = i_parent.
-    m_alvexp_control = alvexp_control.
- endif.
- m_crystal_url = i_doc_url.
- m_cr_fadriver_handle = i_fadriver_handle.
- m_cr_datasource_string = i_datasource_string.
+
 endmethod.
 
 
 METHOD create_view_oi .
-* ...
 
-  CASE mode.
-
-    WHEN 'EE'.
-*   explace-view
-
-      IF m_oi_control IS INITIAL.
-        DATA :
-               office TYPE REF TO i_oi_document_factory,
-               document TYPE REF TO i_oi_document_proxy.
-        CALL METHOD c_oi_factory_creator=>get_document_factory
-                   EXPORTING
-                        factory_type  =  'OLE'
-                   IMPORTING
-                        factory  = office
-                        retcode  =  m_oi_retcode.
-
-        CALL METHOD office->start_factory
-              EXPORTING
-                    r3_application_name = 'ALV'
-              IMPORTING
-                     retcode  =  m_oi_retcode.
-
-*        CALL METHOD office->get_link_server
-*             IMPORTING
-*                    link_server = m_oi_link_server.
-*
-*        CALL METHOD m_oi_link_server->start_link_server.
-*
-*        if sy-uname ne 'FILDEBRANDT'.
-*          CALL METHOD office->get_table_collection
-*                          IMPORTING table_collection = m_oi_table_coll
-*                                    retcode = m_oi_retcode.
-*          CALL METHOD prepare_oi_tables.
-*        endif.
-
-        CALL METHOD office->get_document_proxy
-             EXPORTING
-                   document_type = doc_type
-             IMPORTING
-                   document_proxy =  m_oi_proxy
-                   retcode        =  m_oi_retcode.
-      ENDIF.                           "  if m_oi_control is initial
-
-      CALL METHOD m_oi_proxy->open_document
-           EXPORTING
-                 document_url   =  doc_url
-                 open_inplace   =  ''
-           IMPORTING
-                 retcode        = m_oi_retcode.
-
-      IF m_oi_retcode = 'OPEN_DOCUMENT_FAILED'.
-        RAISE application_error.
-      ENDIF.
-
-      CALL METHOD m_oi_proxy->get_spreadsheet_interface
-                  IMPORTING sheet_interface = m_oi_spreadsheet.
-
-
-    WHEN 'E'.
-*  Inplace-view:
-      IF m_oi_control IS INITIAL.
-
-        CALL METHOD c_oi_ole_control_creator=>get_ole_container_control
-                          IMPORTING control = m_oi_control
-                                    retcode = m_oi_retcode.
-        CALL METHOD c_oi_errors=>show_message
-                                      EXPORTING type = 'E'.
-
-        CALL METHOD m_oi_control->init_control
-                            EXPORTING r3_application_name =
-                                         'ALV' "#EC NOTEXT
-                                      inplace_enabled = 'X'
-                                      inplace_scroll_documents = 'X'
-                                      parent = parent
-                                      register_on_close_event = 'X'
-                                      register_on_custom_event = 'X'
-                            IMPORTING retcode = m_oi_retcode.
-        DATA ref_control TYPE REF TO cl_gui_control.
-        DATA i_oi_container_control TYPE REF TO i_oi_container_control.
-        i_oi_container_control ?= m_oi_control.
-        CALL METHOD i_oi_container_control->get_control_object
-            IMPORTING control = ref_control.
-        call method ref_control->set_metric
-          exporting metric = metric_pixel.
-
-        if ( m_toolbar_visible = 1 ) and
-           ( m_number_toolbar_buttons gt 0 ).
-          CALL METHOD ref_control->set_position
-            EXPORTING top = m_height_toolbar.
-        else.
-          CALL METHOD ref_control->set_position
-            EXPORTING top = 0.
-        endif.
-
-        DATA align TYPE int4.
-        align = cl_gui_control=>align_at_left +
-               cl_gui_control=>align_at_right +
-               cl_gui_control=>align_at_bottom.
-
-        CALL METHOD ref_control->set_alignment
-        EXPORTING    alignment =  align.
-
-
-        CALL METHOD c_oi_errors=>show_message
-                                      EXPORTING type = 'E'.
-
-        CALL METHOD m_oi_control->get_document_proxy
-                 EXPORTING document_type = doc_type
-                 IMPORTING document_proxy = m_oi_proxy
-                           retcode = m_oi_retcode.
-        IF m_oi_retcode NE c_oi_errors=>ret_ok.
-          EXIT.
-        ENDIF.
-
-        SET HANDLER on_oi_custom_event FOR m_oi_proxy.
-
-* necessary step in second call of the Excel View, works
-* with same URL as first time and publish it again to the DP
-        data:
-            protocol  type string,
-            namespace type CNDP_ASYNC_NAME,
-            key       type CNDP_ASYNC_KEY,
-            l_doc_url type bds_uri,
-            l_result  type string.
-        l_doc_url = doc_url.
-        translate l_doc_url to upper case.  "#EC TRANSLANG
-        split doc_url at '://' into protocol l_result.
-        case protocol.
-          when 'FILE'.
-            namespace = 'File://'.     "#EC NOTEXT
-            key       = l_result.
-          when others.
-            split l_result at '/' into namespace key.
-        endcase.
-        l_doc_url = doc_url.
-        call function 'DP_PUBLISH_URL'
-          exporting
-            namespace                   = namespace
-            key                         = key
-*           LIFETIME                    =
-          changing
-            url                         = l_doc_url
-          EXCEPTIONS
-            DP_INVALID_PARAMETERS       = 1
-            DP_NO_CACHE                 = 2
-            DP_ERROR_GENERAL            = 3
-            DATA_SOURCE_ERROR           = 4
-            DP_SEND_DATA_ERROR          = 5
-            GENERAL_ERROR               = 6
-            OTHERS                      = 7
-                  .
-        if sy-subrc <> 0.
-          RAISE application_error.
-        endif.
-* second call of Excel view
-
-        CALL METHOD m_oi_proxy->open_document
-                               EXPORTING document_url = doc_url
-                                         open_inplace  = 'X'
-                                         open_readonly = 'X'
-                               IMPORTING retcode = m_oi_retcode.
-*    CALL METHOD c_oi_errors=>show_message EXPORTING type = 'E'.
-        IF m_oi_retcode = 'OPEN_DOCUMENT_FAILED'
-        or m_oi_retcode = 'CONTROL_INTERNAL_ERROR'.
-          RAISE application_error.
-        ENDIF.
-        CALL METHOD m_oi_proxy->get_spreadsheet_interface
-                           IMPORTING sheet_interface = m_oi_spreadsheet.
-        IF NOT m_oi_spreadsheet IS INITIAL.
-          CALL METHOD m_oi_spreadsheet->load_lib.
-        ENDIF.
-      ELSE.
-     " M_OI_CONTROL IS INITIALIZED, try just to reset the Document.
-     " This does not work, since the other documents are not
-     " closed/unloaded
-     " and the "last" document set this way is not even made the active
-     " document.
-
-*            CALL METHOD m_oi_control->get_document_proxy
-*                 EXPORTING document_type = doc_type
-*                 IMPORTING document_proxy = m_oi_proxy
-*                           retcode = m_oi_retcode.
-*        IF m_oi_retcode NE c_oi_errors=>ret_ok.
-*          EXIT.
-*        ENDIF.
-*
-*        SET HANDLER on_oi_custom_event FOR m_oi_proxy.
-*
-*        CALL METHOD m_oi_proxy->open_document
-*                               EXPORTING document_url = doc_url
-*                                         open_inplace  = 'X'
-*                                         open_readonly = 'X'
-*                               IMPORTING retcode = m_oi_retcode.
-**    CALL METHOD c_oi_errors=>show_message EXPORTING type = 'E'.
-*        IF m_oi_retcode = 'OPEN_DOCUMENT_FAILED'.
-*          RAISE application_error.
-*        ENDIF.
-*        CALL METHOD m_oi_proxy->get_spreadsheet_interface
-*                           IMPORTING sheet_interface = m_oi_spreadsheet
-*        IF NOT m_oi_spreadsheet IS INITIAL.
-*          CALL METHOD m_oi_spreadsheet->load_lib.
-*        ENDIF.
-      ENDIF.
-  ENDCASE.
 
 ENDMETHOD.
 
 
 METHOD DELETE_ALL_CELLS_BASE .
 
-  CALL METHOD CALL_METHOD
-  EXPORTING
-       METHOD    = 'DeleteAllCells'
-   EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
+
 ENDMETHOD.
 
 
 method DELETE_ALL_MENUS.
-* obsolete
+
 endmethod.
 
 
 METHOD DELETE_ALL_ROWS_BASE .
 
-  CALL METHOD CALL_METHOD
-  EXPORTING
-       METHOD    = 'DeleteAllRows'
-   EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 
 ENDMETHOD.
 
 
 METHOD DISPATCH.
 
-  DATA ROW_ID(255) TYPE C.
-  DATA COL_ID(255) TYPE C.
-  DATA FCODE(255) TYPE C.
-  DATA POS_X TYPE I.
-  DATA POS_Y TYPE I.
-
-  CASE EVENTID.
-    WHEN EVT_CLICK_ROW_COL.
-      CALL METHOD GET_EVENT_PARAMETER
-          EXPORTING PARAMETER_ID = 0
-                    QUEUE_ONLY = SPACE
-         IMPORTING  PARAMETER = ROW_ID.
-      CALL METHOD GET_EVENT_PARAMETER
-          EXPORTING PARAMETER_ID = 1
-                    QUEUE_ONLY = SPACE
-         IMPORTING  PARAMETER = COL_ID.
-      CALL METHOD CL_GUI_CFW=>FLUSH.
-      RAISE EVENT CLICK_ROW_COL EXPORTING ROW_ID = ROW_ID
-                                          COL_ID = COL_ID.
-
-    WHEN EVT_TOTAL_CLICK_ROW_COL.
-      CALL METHOD GET_EVENT_PARAMETER
-          EXPORTING PARAMETER_ID = 0
-                    QUEUE_ONLY = SPACE
-         IMPORTING  PARAMETER = ROW_ID.
-      CALL METHOD GET_EVENT_PARAMETER
-          EXPORTING PARAMETER_ID = 1
-                    QUEUE_ONLY = SPACE
-         IMPORTING  PARAMETER = COL_ID.
-      CALL METHOD CL_GUI_CFW=>FLUSH.
-      RAISE EVENT TOTAL_CLICK_ROW_COL EXPORTING ROW_ID = ROW_ID
-                                          COL_ID = COL_ID.
-
-    WHEN EVT_DBLCLICK_ROW_COL.
-      CALL METHOD GET_EVENT_PARAMETER
-          EXPORTING PARAMETER_ID = 0
-                    QUEUE_ONLY = SPACE
-         IMPORTING  PARAMETER = ROW_ID.
-      CALL METHOD GET_EVENT_PARAMETER
-          EXPORTING PARAMETER_ID = 1
-                    QUEUE_ONLY = SPACE
-         IMPORTING  PARAMETER = COL_ID.
-      CALL METHOD CL_GUI_CFW=>FLUSH.
-      RAISE EVENT DBLCLICK_ROW_COL EXPORTING ROW_ID = ROW_ID
-                                             COL_ID = COL_ID.
-
-    WHEN EVT_F1.
-      RAISE EVENT F1.
-
-    WHEN EVT_DELAYED_MOVE_CURRENT_CELL.
-      RAISE EVENT DELAYED_MOVE_CURRENT_CELL.
-
-    WHEN EVT_CLICK_COL_HEADER.
-      CALL METHOD GET_EVENT_PARAMETER
-          EXPORTING PARAMETER_ID = 0
-                    QUEUE_ONLY = SPACE
-         IMPORTING  PARAMETER = COL_ID.
-      CALL METHOD CL_GUI_CFW=>FLUSH.
-      RAISE EVENT CLICK_COL_HEADER EXPORTING COL_ID = COL_ID.
-
-    WHEN EVT_DELAYED_CHANGE_SELECTION.
-      RAISE EVENT DELAYED_CHANGE_SELECTION.
-
-    WHEN EVT_DBLCLICK_COL_SEPARATOR.
-      CALL METHOD GET_EVENT_PARAMETER
-          EXPORTING PARAMETER_ID = 0
-                    QUEUE_ONLY = SPACE
-         IMPORTING  PARAMETER = COL_ID.
-      CALL METHOD CL_GUI_CFW=>FLUSH.
-      RAISE EVENT DOUBLE_CLICK_COL_SEPARATOR EXPORTING COL_ID = COL_ID.
-
-    WHEN EVT_CONTEXT_MENU.
-      RAISE EVENT CONTEXT_MENU.
-
-    WHEN EVT_TOOLBAR_BUTTON_CLICK.
-      CALL METHOD GET_EVENT_PARAMETER
-          EXPORTING PARAMETER_ID = 0
-                    QUEUE_ONLY = SPACE
-         IMPORTING  PARAMETER = FCODE.
-      CALL METHOD CL_GUI_CFW=>FLUSH.
-      RAISE EVENT TOOLBAR_BUTTON_CLICK EXPORTING FCODE = FCODE.
-
-    WHEN EVT_TOOLBAR_MENUBUTTON_CLICK.
-      CALL METHOD GET_EVENT_PARAMETER
-          EXPORTING PARAMETER_ID = 0
-                    QUEUE_ONLY = SPACE
-         IMPORTING  PARAMETER = FCODE.
-      CALL METHOD GET_EVENT_PARAMETER
-          EXPORTING PARAMETER_ID = 1
-                    QUEUE_ONLY = SPACE
-         IMPORTING  PARAMETER = POS_X.
-      CALL METHOD GET_EVENT_PARAMETER
-          EXPORTING PARAMETER_ID = 2
-                    QUEUE_ONLY = SPACE
-         IMPORTING  PARAMETER = POS_Y.
-      CALL METHOD CL_GUI_CFW=>FLUSH.
-      RAISE EVENT TOOLBAR_MENUBUTTON_CLICK EXPORTING FCODE = FCODE
-        MENU_POS_X = POS_X MENU_POS_Y = POS_Y.
-
-      WHEN EVT_CONTEXT_MENU_SELECTED.
-      CALL METHOD GET_EVENT_PARAMETER
-          EXPORTING PARAMETER_ID = 0
-                    QUEUE_ONLY = SPACE
-         IMPORTING  PARAMETER = FCODE.
-      CALL METHOD CL_GUI_CFW=>FLUSH.
-      RAISE EVENT CONTEXT_MENU_SELECTED EXPORTING FCODE = FCODE.
-
-      WHEN EVT_TOOLBAR_MENU_SELECTED.
-      CALL METHOD GET_EVENT_PARAMETER
-          EXPORTING PARAMETER_ID = 0
-                    QUEUE_ONLY = SPACE
-         IMPORTING  PARAMETER = FCODE.
-      CALL METHOD CL_GUI_CFW=>FLUSH.
-      RAISE EVENT TOOLBAR_MENU_SELECTED EXPORTING FCODE = FCODE.
-
-  ENDCASE.
 ENDMETHOD.
 
 
 METHOD DISPLAY_CONTEXT_MENU .
 
-  DATA GUIOBJECT TYPE REF TO CL_GUI_OBJECT.
-  CALL METHOD CL_CTXMNU_MGR=>CREATE_PROXY
-        EXPORTING MENU = CONTEXT_MENU
-        CHANGING  GUIOBJECT = GUIOBJECT
-  EXCEPTIONS EMPTY_OBJ = 1
-             OTHERS = 2.
-  IF SY-SUBRC EQ 2.
-    RAISE ERROR.
-  ENDIF.
-
- IF SY-SUBRC EQ 0.
-
-  CALL METHOD CALL_METHOD
-        EXPORTING METHOD = 'SetContextMenu'
-                  P_COUNT   = 1
-                  P1        = GUIOBJECT->H_CONTROL
-  EXCEPTIONS OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
-
-  CALL METHOD GUIOBJECT->FREE
-        EXCEPTIONS OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
- ENDIF.
 ENDMETHOD.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 METHOD DISPLAY_TOOLBAR_MENU .
 
-  DATA GUIOBJECT TYPE REF TO CL_GUI_OBJECT.
-  CALL METHOD CL_CTXMNU_MGR=>CREATE_PROXY
-        EXPORTING MENU = TOOLBAR_MENU
-        CHANGING  GUIOBJECT = GUIOBJECT
-  EXCEPTIONS EMPTY_OBJ = 1
-             OTHERS = 2.
-  IF SY-SUBRC EQ 2.
-    RAISE ERROR.
-  ENDIF.
-
- IF SY-SUBRC EQ 0.
-  CALL METHOD CALL_METHOD
-        EXPORTING METHOD = 'SetToolBarMenu'
-                  P_COUNT   = 3
-                  P1        = GUIOBJECT->H_CONTROL
-                  P2        = POS_X
-                  P3        = POS_Y
-  EXCEPTIONS OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
-
-  CALL METHOD GUIOBJECT->FREE
-        EXCEPTIONS OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
-  ENDIF.
 ENDMETHOD.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 method free.
 
-* call base class destructor
-  call method super->free
-    exceptions
-      cntl_error        = 1
-      cntl_system_error = 2.
-  case sy-subrc.
-    when 1.
-      raise cntl_error.
-    when 2.
-      raise cntl_system_error.
-  endcase.
-
-*... begin muss wieder weg
-  free parent.
-  free lifetime.
-  free registered_events.
-  free registered_events_count.
-  free registered_simple_events.
-*... end muss wieder weg
-
-  free mt_textpool.
-
-  if not m_alvexp_control is initial.
-    call method m_alvexp_control->free.
-    free m_alvexp_control.
-  endif.
-
-  free m_guid.
-  free m_batch_mode.
-  free m_buf_mt_info.
-  free m_crystal_return_url.
-  free m_crystal_url.
-  free m_cr_datasource_string.
-  free m_cr_fadriver_handle.
-  free m_dynamic_data_active.
-  free m_gui_type.
-  free m_height_toolbar.
-  free m_int_i_web.
-
-  if ( not m_oi_control is initial ).
-    call method m_oi_control->destroy_control.
-    free m_oi_control.
-  endif.
-  free m_oi_link_server.
-  free m_oi_mt_data_fields.
-  free m_oi_mt_info_fields.
-  if ( not m_oi_proxy is initial ).
-    call method m_oi_proxy->close_document.
-    free m_oi_proxy.
-  endif.
-  free m_oi_retcode.
-  free m_oi_spreadsheet.
-  free m_oi_table_coll.
-
-  free m_view.
-
-  free mt_modified_cells.
-  free mt_row_id_cache.
-  free m_colid_to_fieldname.
-  free m_col_pos_table.
-  free m_col_pos_table_valid.
-  free m_first_visible_col_id.
-  free m_first_visible_row_id.
-  free m_gui_type_flow.
-  free m_number_toolbar_buttons.
-  free m_pagingpagesize.
-  free m_selected_cols.
-  free m_toolbar_visible.
-  free m_wan_flag.
-  free m_selected_rows.
-
-  if not m_dbgparent is initial.
-    call method m_dbgparent->free.
-    free m_dbgparent.
-  endif.
-
-* do not free M_DP_ON_DEMAND (see also note pair #389795,#395587)
-* m_dp_col_pos_table, m_dp_selected_cols, M_DP_ROW_ID,
-* M_DP_MODIFIED_CELLS
-* new implementation of FREE_GUI_TABLE - problems described above
-  " shouldn't occur anymore
-  if not m_dp_on_demand is initial.
-    m_dp_on_demand->free_gui_table( ).
-    free m_dp_on_demand.
-  endif.
-  free m_dp_on_demand_avail.
-  free m_dp_on_demand_writable.
-  if not m_dp_col_pos_table is initial.
-    m_dp_col_pos_table->free_gui_table( ).
-    free m_dp_col_pos_table.
-  endif.
-  if not m_dp_selected_cols is initial.
-    m_dp_selected_cols->free_gui_table( ).
-    free m_dp_selected_cols.
-  endif.
-  if not m_dp_modified_cells is initial.
-    m_dp_modified_cells->free_gui_table( ).
-    free m_dp_modified_cells.
-  endif.
-  if not m_dp_row_id is initial.
-    m_dp_row_id->free_gui_table( ).
-    free m_dp_row_id.
-  endif.
-  if not M_DP_SELECTED_ROWS is initial.
-    M_DP_SELECTED_ROWS->free_gui_table( ).
-    free M_DP_SELECTED_ROWS.
-  endif.
 
 endmethod.
 
 
 method GET_COL_POS_ID2_BASE .
 
-  if M_DP_ON_DEMAND_WRITABLE is initial
-    or m_col_pos_table_valid is initial.
-
-    CALL FUNCTION 'DP_CONTROL_ASSIGN_TABLE'
-         EXPORTING
-              H_CNTL       = H_CONTROL
-              MEDIUM       = CNDP_MEDIUM_R3TABLE
-              PROPERTYNAME = 'ColPosID2'
-         TABLES
-              DATA         = COL_POS_TABLE.
-
-    CALL FUNCTION 'DP_CONTROL_GET_TABLE'
-         EXPORTING
-              H_CNTL       = H_CONTROL
-              MEDIUM       = CNDP_MEDIUM_R3TABLE
-              PROPERTYNAME = 'ColPosID2'
-         TABLES
-              DATA         = COL_POS_TABLE.
-  else.
-    col_pos_table = m_col_pos_table.
-  endif.
 ENDMETHOD.
 
 
 METHOD GET_COL_POS_ID_BASE .
 
 
-  if M_DP_ON_DEMAND_WRITABLE is initial
-    or m_col_pos_table_valid is initial.
-
-    data flat_col_pos_table type lvc_t_coll.
-    CALL FUNCTION 'DP_CONTROL_ASSIGN_TABLE'
-         EXPORTING
-              H_CNTL       = H_CONTROL
-              MEDIUM       = CNDP_MEDIUM_R3TABLE
-              PROPERTYNAME = 'ColPosIDType'
-         TABLES
-              DATA         = flat_COL_POS_TABLE.
-
-    CALL FUNCTION 'DP_CONTROL_GET_TABLE'
-         EXPORTING
-              H_CNTL       = H_CONTROL
-              MEDIUM       = CNDP_MEDIUM_R3TABLE
-              PROPERTYNAME = 'ColPosID'
-         TABLES
-              DATA         = flat_COL_POS_TABLE.
-
-    data wa_flat type lvc_s_cofl.
-    data wa_col type lvc_s_coll.
-    clear col_pos_table.
-    loop at flat_col_pos_table into wa_flat.
-      wa_col-col_id-hierlevel = wa_flat-hierlevel.
-      wa_col-col_id-fieldname = wa_flat-fieldname.
-      wa_col-col_pos = wa_flat-col_pos.
-      wa_col-outputlen = wa_flat-outputlen.
-      append wa_col to col_pos_table.
-    endloop.
-  else.
-    data wa_id type lvc_s_co01.
-    data wa_old type lvc_s_coll.
-    data wa_map type s_colid_to_fieldname.
-
-    clear col_pos_table.
-    loop at m_col_pos_table into wa_id.
-      wa_old-col_pos = sy-tabix.
-
-      read table M_COLID_TO_FIELDNAME into wa_map
-        with key col_id = wa_id-col_id.
-
-      wa_old-col_id-fieldname = wa_map-fieldname.
-      wa_old-outputlen = wa_id-outputlen.
-      append wa_old to col_pos_table.
-    endloop.
-  endif.
-
 ENDMETHOD.
 
 
 METHOD GET_CURRENT_CELL_COL .
 
-  IF NOT COL IS REQUESTED.
-    EXIT.
-  ENDIF.
-  check m_batch_mode is initial.
-  CALL METHOD GET_PROPERTY
-    EXPORTING
-      PROPERTY = 'CurrentCellCol'
-      QUEUE_ONLY = ' '
-    IMPORTING
-      VALUE = COL
-    EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 
 ENDMETHOD.
 
 
 METHOD GET_CURRENT_CELL_COL_ID .
 
-  IF NOT COL_ID IS REQUESTED.
-    EXIT.
-  ENDIF.
-  check m_batch_mode is initial.
-  CALL METHOD GET_PROPERTY
-    EXPORTING
-      PROPERTY = 'CurrentCellColID'
-      QUEUE_ONLY = ' '
-    IMPORTING
-      VALUE = COL_ID
-    EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
-
 ENDMETHOD.
 
 
 method GET_CURRENT_CELL_ID2 .
 
-  IF ROW_ID IS REQUESTED.
-    CALL METHOD GET_PROPERTY
-      EXPORTING
-        PROPERTY = 'CurrentCellRowIDNumeric'
-        QUEUE_ONLY = ' '
-      IMPORTING
-        VALUE = ROW_ID-ROW_ID
-      EXCEPTIONS
-        OTHERS = 1.
-    IF SY-SUBRC NE 0.
-      RAISE ERROR.
-    ENDIF.
-
-    CALL METHOD GET_PROPERTY
-      EXPORTING
-        PROPERTY = 'CurrentCellRowIDSubNumeric'
-        QUEUE_ONLY = ' '
-      IMPORTING
-        VALUE = ROW_ID-SUB_ROW_ID
-      EXCEPTIONS
-        OTHERS = 1.
-    IF SY-SUBRC NE 0.
-      RAISE ERROR.
-    ENDIF.
-
-  ENDIF.
-
-  IF COL_ID IS REQUESTED.
-    CALL METHOD GET_PROPERTY
-      EXPORTING
-        PROPERTY = 'CurrentCellColIDNumeric'
-        QUEUE_ONLY = ' '
-      IMPORTING
-        VALUE = COL_ID
-      EXCEPTIONS
-        OTHERS = 1.
-    IF SY-SUBRC NE 0.
-      RAISE ERROR.
-    ENDIF.
-
-  ENDIF.
 
 ENDMETHOD.
 
 
 METHOD GET_CURRENT_CELL_ROW .
 
-  IF NOT ROW IS REQUESTED.
-    EXIT.
-  ENDIF.
-  check m_batch_mode is initial.
-  CALL METHOD GET_PROPERTY
-    EXPORTING
-      PROPERTY = 'CurrentCellRow'
-      QUEUE_ONLY = ' '
-    IMPORTING
-      VALUE = ROW
-    EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
-
 ENDMETHOD.
 
 
 METHOD GET_CURRENT_CELL_ROW_ID .
 
-  IF NOT ROW_ID IS REQUESTED.
-    EXIT.
-  ENDIF.
-  check m_batch_mode is initial.
-  CALL METHOD GET_PROPERTY
-    EXPORTING
-      PROPERTY = 'CurrentCellRowID'
-      QUEUE_ONLY = ' '
-    IMPORTING
-      VALUE = ROW_ID
-    EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 
 ENDMETHOD.
 
 
 METHOD GET_CURRENT_CELL_TEXT.
 
-  IF NOT TEXT IS REQUESTED.
-    EXIT.
-  ENDIF.
-  check m_batch_mode is initial.
-  CALL METHOD GET_PROPERTY
-    EXPORTING
-      PROPERTY = 'CurrentCellText'
-      QUEUE_ONLY = ' '
-    IMPORTING
-      VALUE = TEXT
-    EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 
 ENDMETHOD.
 
 
 method get_data_table_linecount.
 
-  linecount = m_dp_on_demand->get_linecount( ).
 
 endmethod.
 
 
 method GET_ENTER_KEY_MODE .
 
-  IF NOT MODE IS REQUESTED.
-    EXIT.
-  ENDIF.
-
-  CALL METHOD GET_PROPERTY
-    EXPORTING
-      PROPERTY = 'EnterKeyMode'
-      QUEUE_ONLY = ' '
-    IMPORTING
-      VALUE = MODE
-    EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 
 ENDMETHOD.
 
 
 METHOD GET_FIRST_VISIBLE_COL .
 
-  IF NOT COL IS REQUESTED.
-    EXIT.
-  ENDIF.
-  check m_batch_mode is initial.
-  CALL METHOD GET_PROPERTY
-    EXPORTING
-      PROPERTY = 'FirstVisibleCol'
-      QUEUE_ONLY = ' '
-    IMPORTING
-      VALUE = COL
-    EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 
 ENDMETHOD.
 
 
 METHOD GET_FIRST_VISIBLE_COL_ID .
 
-  IF NOT COL_ID IS REQUESTED.
-    EXIT.
-  ENDIF.
-  check m_batch_mode is initial.
-  CALL METHOD GET_PROPERTY
-    EXPORTING
-      PROPERTY = 'FirstVisibleColID'
-      QUEUE_ONLY = ' '
-    IMPORTING
-      VALUE = COL_ID
-    EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 
 ENDMETHOD.
 
@@ -2085,64 +1103,17 @@ ENDMETHOD.
 method GET_FIRST_VISIBLE_COL_ID2 .
 
 
-  if m_dynamic_data_active is initial.
-    CALL METHOD CALL_METHOD
-      EXPORTING
-        METHOD            = 'GetFirstVisibleColIDNumeric'
-        QUEUE_ONLY        = ' '
-        keep_cache        = 'X'
-      IMPORTING
-        RESULT            = COL_ID
-      EXCEPTIONS
-        others            = 1.
-    IF SY-SUBRC <> 0.
-      raise error.
-    ENDIF.
-  else.
-    col_id = m_first_visible_col_id.
-  endif.
-
 ENDMETHOD.
 
 
 METHOD GET_FIRST_VISIBLE_ROW .
 
-  IF NOT ROW IS REQUESTED.
-    EXIT.
-  ENDIF.
-  check m_batch_mode is initial.
-  CALL METHOD GET_PROPERTY
-    EXPORTING
-      PROPERTY = 'FirstVisibleRow'
-      QUEUE_ONLY = ' '
-    IMPORTING
-      VALUE = ROW
-    EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 
 ENDMETHOD.
 
 
 METHOD GET_FIRST_VISIBLE_ROW_ID .
 
-  IF NOT ROW_ID IS REQUESTED.
-    EXIT.
-  ENDIF.
-  check m_batch_mode is initial.
-  CALL METHOD GET_PROPERTY
-    EXPORTING
-      PROPERTY = 'FirstVisibleRowID'
-      QUEUE_ONLY = ' '
-    IMPORTING
-      VALUE = ROW_ID
-    EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 
 ENDMETHOD.
 
@@ -2150,542 +1121,74 @@ ENDMETHOD.
 method GET_FIRST_VISIBLE_ROW_ID2 .
 
 
-  if m_dynamic_data_active is initial.
-    CALL METHOD CALL_METHOD
-      EXPORTING
-        METHOD            = 'GetFirstVisibleRowIDNumeric'
-        QUEUE_ONLY        = ' '
-        keep_cache        = 'X'
-      IMPORTING
-        RESULT            = ROW_ID-ROW_ID
-      EXCEPTIONS
-        others            = 1.
-    IF SY-SUBRC <> 0.
-      raise error.
-    ENDIF.
-
-    CALL METHOD CALL_METHOD
-      EXPORTING
-        METHOD            = 'GetFirstVisibleRowIDSubNumeric'
-        QUEUE_ONLY        = ' '
-        keep_cache        = 'X'
-      IMPORTING
-        RESULT            = ROW_ID-SUB_ROW_ID
-      EXCEPTIONS
-        others            = 1.
-    IF SY-SUBRC <> 0.
-      raise error.
-    ENDIF.
-  else.
-    row_id = m_first_visible_row_id.
-  endif.
-
 ENDMETHOD.
 
 
 METHOD GET_FIXED_COLS .
 
-  IF NOT COLS IS REQUESTED.
-    EXIT.
-  ENDIF.
-  check m_batch_mode is initial.
-  CALL METHOD GET_PROPERTY
-    EXPORTING
-      PROPERTY = 'FixedRows'
-      QUEUE_ONLY = ' '
-    IMPORTING
-      VALUE = COLS
-    EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 
 ENDMETHOD.
 
 
 method GET_GRID_MODIFIED .
 
-  IF NOT modified IS REQUESTED.
-    EXIT.
-  ENDIF.
-
-  CALL METHOD GET_PROPERTY
-    EXPORTING
-      PROPERTY = 'GridModified'
-      QUEUE_ONLY = ' '
-    IMPORTING
-      VALUE = modified
-    EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 ENDMETHOD.
 
 
 method get_gui_type.
 
-*<<< Y7AK064187
-  gui_type = m_gui_type.
-
-  check m_gui_type is initial.
-
-  include <www_constants>.
-
-  if not www_active is initial.
-* Integrierter ITS setzt Farben selbst ab Patch 25
-* Setzen des Attributes m_gui_type_html_version fuer SLVC
-    data: l_int_its(1) type c.
-    call function 'IS_INTEGRATED_ITS'
-      importing
-        return = l_int_its
-      exceptions
-        error  = 1
-        others = 2.
-    if sy-subrc eq 0.
-      if l_int_its is initial.
-        m_gui_type  = m_gui_type_html.     "Farben werden nicht gesetzt vom ITS
-      else.
-        m_gui_type  = m_gui_type_its_int.  "Farben werden gesetzt vom ITS
-      endif.
-    else.
-      m_gui_type  = m_gui_type_html.     "Farben werden nicht gesetzt vom ITS
-    endif.
-  else.
-    if not javabean is initial.
-      m_gui_type = m_gui_type_java.
-    else.
-      if not activex is initial.
-        m_gui_type = m_gui_type_windows.
-      endif.
-    endif.
-  endif.
-
-*4.6x:
-*-alle Farben auch semantische Farben(Summe,Key,Editierbarkeit) werden vom Backend setzen
-*-Abmischlogik nach Prio liegt im Backend
-* z.B Anwendung sagt ROT, ist aber Keyspalte dann gewinnt ROT
-
-*>4.6x:
-*-für semantische Farben werden die Farben am Frontend ermittelt.
-*-Backend setzt nur noch Keyspalte, Summenzeile, Editierbar
-*-Anwendung setzt Farbe, hier werden die Colors ans Frontend direkt gegeben
-*-Entscheidung bei Frontend welche Regel gewinnt siehe obriges Beispiel ROT
-
-* Setzen des GUI-Typs:
-* Im integrierten ITS kann auch auf den Modus >4.6x umgeschaltet werden
-* Damit bildet nur noch der Standalone HTML GUI die Ausnahme, wo die Abmischlogik
-* am Backend stattfindet. In den LVC-Bausteinen hängt die Entscheidung nach der Logik
-* an den Abfragen if g_gui_type ne 1. Deshalb wird hier der GUI_TYPE umgeändert.
-
-*  if m_gui_type = m_gui_type_windows
-*  or m_gui_type = m_gui_type_java
-*  or m_gui_type = m_gui_type_its_int
-*  or m_gui_type = m_gui_type_excel.
-*    m_gui_type = m_gui_type_windows. "Farben am Frontend gesetzt
-*  else.
-*    m_gui_type = m_gui_type.  "Farben werden am Backend gesetzt
-*  endif.
-* Coding muss im SOFT_REFRESH_TABLE_DISPLAY prozessiert werden, da z.B. die
-* Toolbar auch auf den GUI-Type ungleich 1 reagieren muss.
-
- gui_type = m_gui_type.
-*>>> Y7AK064187
 
 endmethod.
 
 
 method GET_HIGHEST_ROW_ID .
 
-  IF NOT ROW_ID IS REQUESTED.
-    EXIT.
-  ENDIF.
-
-  CALL METHOD GET_PROPERTY
-    EXPORTING
-      PROPERTY = 'HighestRowID'
-      QUEUE_ONLY = ' '
-    IMPORTING
-      VALUE = ROW_ID
-    EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
-
 ENDMETHOD.
 
 
 method GET_MODIFIED_CELLS .
 
-  data use_cached_cells type c value 'X'.
-  data wa type lvc_s_moce.
-  data lines type i.
-  DATA: gt_stretched_table TYPE ref to data.
-  DATA: columns_to_stretch TYPE table_of_strings.
-  DATA: m_stretch_column TYPE c length 1.
-
-* Task : YI3K251441
-  TYPES: BEGIN OF wa2,
-            row_id     type int4,
-            sub_row_id type int4,
-            col_id     TYPE int4,
-            value(384) type c, " Size of VALUE field of LVC_S_MOCE * 3.
-            STYLE      Type LVC_ISTYLE,
-            STYLE2     Type LVC_ISTYLE,
-            STYLE3     Type LVC_ISTYLE,
-            STYLE4     Type LVC_ISTYLE,
-            MAXLEN     Type INT4,
-          end of wa2.
-
-  FIELD-SYMBOLS : <CELL_TABLE> TYPE TABLE,
-                  <wa2>  type wa2.
-
-  IF CL_ABAP_CHAR_UTILITIES=>CHARSIZE EQ 2.
-  "stretch the above column if needed
-*  Start: Gui Support Check
-*  Task : YI3K287657
-    CALL METHOD CL_GUI_FRONTEND_SERVICES=>CHECK_GUI_SUPPORT
-      EXPORTING
-        COMPONENT            = 'gridview'
-        FEATURE_NAME         = 'stretchingHeader'
-      RECEIVING
-        RESULT               =  m_stretch_column
-      EXCEPTIONS
-        CNTL_ERROR           = 1
-        ERROR_NO_GUI         = 2
-        WRONG_PARAMETER      = 3
-        NOT_SUPPORTED_BY_GUI = 4
-        UNKNOWN_ERROR        = 5
-        others               = 6.
-
-    IF SY-SUBRC <> 0.
-     m_stretch_column = ABAP_FALSE.
-    ENDIF.
-*  End: Gui Support Check
-  ENDIF.
-
-  IF m_stretch_column IS NOT INITIAL. " Check for stretch mechanism which is allowed only in unicode systems.
-    ASSIGN CELL_TABLE TO <CELL_TABLE>.
-    APPEND 'VALUE' TO columns_to_stretch.
-  ENDIF.
-
-
-  if M_DP_ON_DEMAND_WRITABLE is initial.
-    clear use_cached_cells.
-  else.
-*   Check if the table contains only one line with row and col = -1
-*   In this case the cache is invalid and the modified cells must
-*   be fetched from the frontend via DataProvider.
-    describe table MT_MODIFIED_CELLS lines lines.
-    if lines = 1.
-      read table MT_MODIFIED_CELLS into wa index 1.
-      if wa-row_id = -1 and wa-col_id = -1.
-        clear use_cached_cells.
-      endif.
-    endif.
-  endif.
-
-  IF not use_cached_cells is initial.
-    CELL_TABLE = MT_MODIFIED_CELLS.
-  ELSE.
-    CLEAR CELL_TABLE.
-
-      IF NOT  m_stretch_column IS INITIAL.
-
-          CALL FUNCTION 'DP_STRETCH_TABLE'
-            IMPORTING
-              stretched_data_ref  = gt_stretched_table
-            TABLES
-              data                = CELL_TABLE
-              columns_to_stretch  = columns_to_stretch
-            EXCEPTIONS
-              dp_stretching_error = 1
-              OTHERS              = 2.
-
-
-          IF gt_stretched_table IS NOT INITIAL.
-            ASSIGN gt_stretched_table->* TO <CELL_TABLE>.
-          ENDIF.
-
-          ASSERT <CELL_TABLE> IS ASSIGNED.
-*       End of Stretch table functionality
-
-          CALL FUNCTION 'DP_CONTROL_ASSIGN_TABLE'
-               EXPORTING
-                    H_CNTL       = H_CONTROL
-                    MEDIUM       = CNDP_MEDIUM_R3TABLE
-                    PROPERTYNAME = 'ModifiedCellsType'
-               TABLES
-                    DATA         = <CELL_TABLE>
-               EXCEPTIONS
-                    OTHERS       = 1.
-
-          IF SY-SUBRC NE 0.
-            RAISE ERROR.
-          ENDIF.
-
-          CALL FUNCTION 'DP_CONTROL_GET_TABLE'
-               EXPORTING
-                    H_CNTL       = H_CONTROL
-                    MEDIUM       = CNDP_MEDIUM_R3TABLE
-                    PROPERTYNAME = 'ModifiedCells'
-               TABLES
-                    DATA         = <CELL_TABLE>
-               EXCEPTIONS
-                    OTHERS       = 1.
-
-     ENDIF.
-
-     IF <CELL_TABLE> IS ASSIGNED AND CL_ABAP_CHAR_UTILITIES=>CHARSIZE EQ 2 AND m_stretch_column IS NOT INITIAL.
-        loop at <CELL_TABLE> assigning <wa2>.
-          move-corresponding <wa2> to wa.
-*          move <wa2>-value to wa-value.
-          APPEND WA TO CELL_TABLE.
-        ENDLOOP.
-*      ENDIF.
-* Enf of Task : YI3K251441
-    ELSE.
-
-          CALL FUNCTION 'DP_CONTROL_ASSIGN_TABLE'
-         EXPORTING
-              H_CNTL       = H_CONTROL
-              MEDIUM       = CNDP_MEDIUM_R3TABLE
-              PROPERTYNAME = 'ModifiedCellsType'
-         TABLES
-              DATA         = CELL_TABLE
-         EXCEPTIONS
-              OTHERS       = 1.
-    IF SY-SUBRC NE 0.
-      RAISE ERROR.
-    ENDIF.
-
-    CALL FUNCTION 'DP_CONTROL_GET_TABLE'
-         EXPORTING
-              H_CNTL       = H_CONTROL
-              MEDIUM       = CNDP_MEDIUM_R3TABLE
-              PROPERTYNAME = 'ModifiedCells'
-         TABLES
-              DATA         = CELL_TABLE
-         EXCEPTIONS
-              OTHERS       = 1.
-
-    ENDIF.
-
-    IF SY-SUBRC NE 0.
-      RAISE ERROR.
-    ENDIF.
-  ENDIF.
-
-* CATT
-  if catt_active <> space.
-    call function 'CAT_GRID_COPY_MODIF_CELLS'
-         tables cell_table = cell_table.
-    if catt_playback <> space.
-      call function 'CAT_GRID_INSERT_MODIF_CELLS'
-           tables cell_table = cell_table.
-    endif.
-  endif.
-* CATT
 
 ENDMETHOD.
 
 
 method GET_PAGINGPAGESIZE.
-  IF NOT PAGINGPAGESIZE IS REQUESTED.
-    EXIT.
-  ENDIF.
 
-  if ( www_active is initial ).
-    pagingpagesize = m_pagingpagesize.
-    exit.
-  endif.
-
-  CALL METHOD GET_PROPERTY
-  EXPORTING
-    PROPERTY = 'PagingPagesize'
-    QUEUE_ONLY = ' '
-  IMPORTING
-    VALUE = PagingPagesize
-  EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 endmethod.
 
 
 method GET_ROWS_MOVED .
 
-  IF NOT MOVED IS REQUESTED.
-    EXIT.
-  ENDIF.
-  CALL METHOD GET_PROPERTY
-    EXPORTING
-      PROPERTY = 'RowsMoved'
-      QUEUE_ONLY = ' '
-    IMPORTING
-      VALUE = MOVED
-    EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
+
 
 ENDMETHOD.
 
 
 method GET_ROW_DELETE_ALLOWED .
 
-  IF NOT allowed IS REQUESTED.
-    EXIT.
-  ENDIF.
 
-  CALL METHOD GET_PROPERTY
-    EXPORTING
-      PROPERTY = 'RowDeleteAllowed'
-      QUEUE_ONLY = ' '
-    IMPORTING
-      VALUE = allowed
-    EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 
 ENDMETHOD.
 
 
 method GET_ROW_ID.
 
-* new IDs from frontend only if rows have moved ...
-  data moved type i.
-  call method get_rows_moved importing moved = moved.
-* call flush only if necessary.
-  if cl_gui_cfw=>IS_CACHE_VALID( me ) eq space.
-    call method cl_gui_cfw=>flush.
-  endif.
-
-
-  if ( moved is initial ) or
-     ( m_dp_on_demand_writable is not initial ).
-    ROW_ID_TABLE = mt_row_id_cache.
-  else.
-    CLEAR ROW_ID_TABLE.
-    CALL FUNCTION 'DP_CONTROL_ASSIGN_TABLE'
-         EXPORTING
-              H_CNTL       = H_CONTROL
-              MEDIUM       = CNDP_MEDIUM_R3TABLE
-              PROPERTYNAME = 'RowIDNumericType'
-         TABLES
-              DATA         = ROW_ID_TABLE
-         EXCEPTIONS
-              OTHERS       = 1.
-    IF SY-SUBRC NE 0.
-      RAISE ERROR.
-    ENDIF.
-
-    CALL FUNCTION 'DP_CONTROL_GET_TABLE'
-         EXPORTING
-              H_CNTL       = H_CONTROL
-              MEDIUM       = CNDP_MEDIUM_R3TABLE
-              PROPERTYNAME = 'RowIDNumeric'
-         TABLES
-              DATA         = ROW_ID_TABLE
-         EXCEPTIONS
-              OTHERS       = 1.
-    IF SY-SUBRC NE 0.
-      RAISE ERROR.
-    ENDIF.
-  endif.
 
 ENDMETHOD.
 
 
 method GET_ROW_INSERT_ALLOWED .
 
-  IF NOT allowed IS REQUESTED.
-    EXIT.
-  ENDIF.
-
-  CALL METHOD GET_PROPERTY
-    EXPORTING
-      PROPERTY = 'RowInsertAllowed'
-      QUEUE_ONLY = ' '
-    IMPORTING
-      VALUE = allowed
-    EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 
 ENDMETHOD.
 
 
 METHOD GET_SELECTED_CELLS_BASE .
 
-  CLEAR CELL_TABLE.
-  check m_batch_mode is initial.
-  CALL FUNCTION 'DP_CONTROL_ASSIGN_TABLE'
-       EXPORTING
-            H_CNTL       = H_CONTROL
-            MEDIUM       = CNDP_MEDIUM_R3TABLE
-            PROPERTYNAME = 'SelectedCellsType'
-       TABLES
-            DATA         = CELL_TABLE
-       EXCEPTIONS
-            OTHERS       = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
-
-  CALL FUNCTION 'DP_CONTROL_GET_TABLE'
-       EXPORTING
-            H_CNTL       = H_CONTROL
-            MEDIUM       = CNDP_MEDIUM_R3TABLE
-            PROPERTYNAME = 'SelectedCells'
-       TABLES
-            DATA         = CELL_TABLE
-       EXCEPTIONS
-            OTHERS       = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
-
 ENDMETHOD.
 
 
 method GET_SELECTED_CELLS_BASE_ID2 .
-
-  CLEAR CELL_TABLE.
-
-  CALL FUNCTION 'DP_CONTROL_ASSIGN_TABLE'
-       EXPORTING
-            H_CNTL       = H_CONTROL
-            MEDIUM       = CNDP_MEDIUM_R3TABLE
-            PROPERTYNAME = 'SelectedCellsType3'
-       TABLES
-            DATA         = CELL_TABLE
-       EXCEPTIONS
-            OTHERS       = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
-
-  CALL FUNCTION 'DP_CONTROL_GET_TABLE'
-       EXPORTING
-            H_CNTL       = H_CONTROL
-            MEDIUM       = CNDP_MEDIUM_R3TABLE
-            PROPERTYNAME = 'SelectedCells3'
-       TABLES
-            DATA         = CELL_TABLE
-       EXCEPTIONS
-            OTHERS       = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 
 
 ENDMETHOD.
@@ -2693,325 +1196,56 @@ ENDMETHOD.
 
 method GET_SELECTED_CELLS_BASE_RANGE .
 
-  CLEAR CELL_TABLE.
-  check m_batch_mode is initial.
-  CALL FUNCTION 'DP_CONTROL_ASSIGN_TABLE'
-       EXPORTING
-            H_CNTL       = H_CONTROL
-            MEDIUM       = CNDP_MEDIUM_R3TABLE
-            PROPERTYNAME = 'SelectedCellsType2'
-       TABLES
-            DATA         = CELL_TABLE
-       EXCEPTIONS
-            OTHERS       = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
-
-  CALL FUNCTION 'DP_CONTROL_GET_TABLE'
-       EXPORTING
-            H_CNTL       = H_CONTROL
-            MEDIUM       = CNDP_MEDIUM_R3TABLE
-            PROPERTYNAME = 'SelectedCells2'
-       TABLES
-            DATA         = CELL_TABLE
-       EXCEPTIONS
-            OTHERS       = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
-
 ENDMETHOD.
 
 
 METHOD GET_SELECTED_COLUMNS_BASE.
-
-  CLEAR COL_TABLE.
-  check m_batch_mode is initial.
-  if M_DP_ON_DEMAND_WRITABLE is initial.
-    CALL FUNCTION 'DP_CONTROL_ASSIGN_TABLE'
-         EXPORTING
-              H_CNTL       = H_CONTROL
-              MEDIUM       = CNDP_MEDIUM_R3TABLE
-              PROPERTYNAME = 'SelectedColumnsType'
-         TABLES
-              DATA         = COL_TABLE
-         EXCEPTIONS
-              OTHERS       = 1.
-    IF SY-SUBRC NE 0.
-      RAISE ERROR.
-    ENDIF.
-
-    CALL FUNCTION 'DP_CONTROL_GET_TABLE'
-         EXPORTING
-              H_CNTL       = H_CONTROL
-              MEDIUM       = CNDP_MEDIUM_R3TABLE
-              PROPERTYNAME = 'SelectedColumns'
-         TABLES
-              DATA         = COL_TABLE
-         EXCEPTIONS
-              OTHERS       = 1.
-    IF SY-SUBRC NE 0.
-      RAISE ERROR.
-    ENDIF.
-  else.
-    data wa_2 type lvc_s_col2.
-    data wa_1 type lvc_s_col.
-    data wa_map type S_COLID_TO_FIELDNAME.
-
-    loop at M_SELECTED_COLS into wa_2.
-        read table M_COLID_TO_FIELDNAME into wa_map
-          with key col_id = wa_2-col_id.
-        wa_1-fieldname = wa_map-fieldname.
-        append wa_1 to col_table.
-    endloop.
-  endif.
 
 ENDMETHOD.
 
 
 method GET_SELECTED_COLUMNS_BASE_ID2 .
 
-  CLEAR COL_TABLE.
-  CALL FUNCTION 'DP_CONTROL_ASSIGN_TABLE'
-       EXPORTING
-            H_CNTL       = H_CONTROL
-            MEDIUM       = CNDP_MEDIUM_R3TABLE
-            PROPERTYNAME = 'SelectedColsType2'
-       TABLES
-            DATA         = COL_TABLE
-       EXCEPTIONS
-            OTHERS       = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
-
-  CALL FUNCTION 'DP_CONTROL_GET_TABLE'
-       EXPORTING
-            H_CNTL       = H_CONTROL
-            MEDIUM       = CNDP_MEDIUM_R3TABLE
-            PROPERTYNAME = 'SelectedCols2'
-       TABLES
-            DATA         = COL_TABLE
-       EXCEPTIONS
-            OTHERS       = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 
 ENDMETHOD.
 
 
 METHOD GET_SELECTED_ROWS_BASE .
 
-  CLEAR ROW_TABLE.
-  check m_batch_mode is initial.
-  CALL FUNCTION 'DP_CONTROL_ASSIGN_TABLE'
-       EXPORTING
-            H_CNTL       = H_CONTROL
-            MEDIUM       = CNDP_MEDIUM_R3TABLE
-            PROPERTYNAME = 'SelectedRowsType'
-       TABLES
-            DATA         = ROW_TABLE
-       EXCEPTIONS
-            OTHERS       = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
-
-  CALL FUNCTION 'DP_CONTROL_GET_TABLE'
-       EXPORTING
-            H_CNTL       = H_CONTROL
-            MEDIUM       = CNDP_MEDIUM_R3TABLE
-            PROPERTYNAME = 'SelectedRows'
-       TABLES
-            DATA         = ROW_TABLE
-       EXCEPTIONS
-            OTHERS       = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
-
 ENDMETHOD.
 
 
 method GET_SELECTED_ROWS_BASE_RANGE .
 
-  CLEAR ROW_TABLE.
-  check m_batch_mode is initial.
-  CALL FUNCTION 'DP_CONTROL_ASSIGN_TABLE'
-       EXPORTING
-            H_CNTL       = H_CONTROL
-            MEDIUM       = CNDP_MEDIUM_R3TABLE
-            PROPERTYNAME = 'SelectedRowsType2'
-       TABLES
-            DATA         = ROW_TABLE
-       EXCEPTIONS
-            OTHERS       = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
-
-  CALL FUNCTION 'DP_CONTROL_GET_TABLE'
-       EXPORTING
-            H_CNTL       = H_CONTROL
-            MEDIUM       = CNDP_MEDIUM_R3TABLE
-            PROPERTYNAME = 'SelectedRows2'
-       TABLES
-            DATA         = ROW_TABLE
-       EXCEPTIONS
-            OTHERS       = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 
 ENDMETHOD.
 
 
 method GET_SELECTED_ROWS_ID_BASE .
 
-  data use_cached_rows type c value 'X'.
-  data wa type lvc_s_roid.
-  data lines type i.
-
-  if m_cache_selected_rows is initial.
-    clear use_cached_rows.
-  else.
-*   Check if the table contains only one line with -1
-*   In this case the cache is invalid and the rows must
-*   be fetched from the frontend
-    describe table M_SELECTED_ROWS lines lines.
-    if lines = 1.
-      read table M_SELECTED_ROWS into wa index 1.
-      if wa-row_id = -1 and wa-sub_row_id = -1.
-        clear use_cached_rows.
-      endif.
-    endif.
-  endif.
-
-  if use_cached_rows is not initial.
-    ROW_TABLE = M_SELECTED_ROWS.
-  else.
-    CLEAR ROW_TABLE.
-    CALL FUNCTION 'DP_CONTROL_ASSIGN_TABLE'
-      EXPORTING
-        H_CNTL       = H_CONTROL
-        MEDIUM       = CNDP_MEDIUM_R3TABLE
-        PROPERTYNAME = 'SelectedRowsType3'
-      TABLES
-        DATA         = ROW_TABLE
-      EXCEPTIONS
-        OTHERS       = 1.
-    IF SY-SUBRC NE 0.
-      RAISE ERROR.
-    ENDIF.
-
-    CALL FUNCTION 'DP_CONTROL_GET_TABLE'
-      EXPORTING
-        H_CNTL       = H_CONTROL
-        MEDIUM       = CNDP_MEDIUM_R3TABLE
-        PROPERTYNAME = 'SelectedRows3'
-      TABLES
-        DATA         = ROW_TABLE
-      EXCEPTIONS
-        OTHERS       = 1.
-    IF SY-SUBRC NE 0.
-      RAISE ERROR.
-    ENDIF.
-  endif.
 ENDMETHOD.
 
 
 method GET_TOOLBAR_WRAP .
 
-  IF NOT WRAP IS REQUESTED.
-    EXIT.
-  ENDIF.
-
-  CALL METHOD GET_PROPERTY
-    EXPORTING
-      PROPERTY = 'ToolBarWrap'
-      QUEUE_ONLY = ' '
-    IMPORTING
-      VALUE = wrap
-    EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 
 ENDMETHOD.
 
 
 method GET_TOTAL_ARROWS .
 
-  IF NOT VISIBLE IS REQUESTED.
-    EXIT.
-  ENDIF.
-
-  CALL METHOD GET_PROPERTY
-    EXPORTING
-      PROPERTY = 'TotalArrows'
-      QUEUE_ONLY = ' '
-    IMPORTING
-      VALUE = visible
-    EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 
 ENDMETHOD.
 
 
 method GET_TOTAL_EXPANDERS .
 
-  IF NOT VISIBLE IS REQUESTED.
-    EXIT.
-  ENDIF.
-
-  CALL METHOD GET_PROPERTY
-    EXPORTING
-      PROPERTY = 'TotalExpanders'
-      QUEUE_ONLY = ' '
-    IMPORTING
-      VALUE = visible
-    EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 
 ENDMETHOD.
 
 
 method HOST_IFRAME .
 
-  if ( I_on is initial ).
-  CALL METHOD CALL_METHOD
-  EXPORTING
-       METHOD    = 'HostIFrame' "#EC NOTEXT
-       P_COUNT   = 2
-       P1        = 0
-       P2        = i_url
-   EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
-  else.
-  CALL METHOD CALL_METHOD
-  EXPORTING
-       METHOD    = 'HostIFrame' "#EC NOTEXT
-       P_COUNT   = 2
-       P1        = 1
-       P2        = i_url
-   EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
-  endif.
 ENDMETHOD.
 
 
@@ -3020,28 +1254,11 @@ endmethod.
 
 
 method IF_GUI_DYNAMIC_DATA~ON_NEW_NODE.
-  retval = me.
+
 endmethod.
 
 
 method IF_GUI_DYNAMIC_DATA~ON_VALUE.
-
-  if name = 'FVRID'.
-    M_DYNAMIC_DATA_ACTIVE = 'X'.
-    m_first_visible_row_id-row_id = value.
-  endif.
-
-  if name = 'FVRIDS'.
-    M_DYNAMIC_DATA_ACTIVE = 'X'.
-    m_first_visible_row_id-sub_row_id = value.
-  endif.
-
-  if name = 'FVCID'.
-    M_DYNAMIC_DATA_ACTIVE = 'X'.
-    m_first_visible_col_id = value.
-  endif.
-
-  m_col_pos_table_valid = 'X'.
 
 endmethod.
 
@@ -3069,35 +1286,11 @@ endmethod.
 
 method OPEN_BROWSER_WINDOW .
 
-*if ( sy-uname eq 'FORSTMANN' ).
-*  CALL METHOD CALL_METHOD
-*  EXPORTING
-*       METHOD    = 'OpenBrowserWindow' "#EC NOTEXT
-*       P_COUNT   = 1
-*       P1        = i_url
-*   EXCEPTIONS
-*      OTHERS = 1.
-*  IF SY-SUBRC NE 0.
-*    RAISE ERROR.
-*  ENDIF.
-*endif.
 ENDMETHOD.
 
 
 method OPTIMIZE_ALL_COLS .
 
-  clear m_col_pos_table_valid.
-
-  CALL METHOD CALL_METHOD
-  EXPORTING
-       METHOD    = 'OptimizeAllCols' "#EC NOTEXT
-       P_COUNT   = 1
-       P1        = include_header
-   EXCEPTIONS
-      OTHERS = 1.
-  IF SY-SUBRC NE 0.
-    RAISE ERROR.
-  ENDIF.
 
 ENDMETHOD.
 
