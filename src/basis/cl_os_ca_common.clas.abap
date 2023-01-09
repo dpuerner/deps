@@ -26,7 +26,7 @@ protected section.
   types:
     begin of TYP_OBJECT_INFO ,
       OBJECT_ID     type        TYP_INTERNAL_OID ,
-      OBJECT_IREF   type        TYP_OBJECT_IREF ,
+      OBJECT_IREF   type        TYP_OBJECT_IREF .
       OBJECT_WREF   type ref to CL_ABAP_WEAK_REFERENCE ,
       PM_STATUS     type        OS_OSTATUS ,
       PM_DBSTATUS   type        OS_DSTATUS ,
