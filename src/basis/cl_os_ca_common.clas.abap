@@ -8,6 +8,35 @@ class lcl_check definition final create private friends cl_os_ca_common.
         importing i_class_name type clike.
 endclass.
 
+class lcl_check implementation.
+  method transaction.
+    data: transaction_manager     type ref to if_os_transaction_manager.
+    data: transaction             type ref to if_os_transaction.
+    data: transaction_status      type os_tstatus.
+
+    transaction_manager = cl_os_system=>get_transaction_manager( ).
+    transaction         = transaction_manager->get_top_transaction( ).
+
+    assert id sos_transaction
+      subkey |NO_TRANSACTION| &&
+             |({ i_class_name },{ sy-oncom },{ i_operation })|
+      condition transaction is not initial.
+    if transaction is not initial.
+      transaction_status = transaction->get_status( ).
+      assert id sos_transaction
+        subkey |TRANSACTION_NOT_RUNNING| &&
+               |({ i_class_name },{ transaction_status },{ sy-oncom },{ i_operation })|
+        condition transaction_status eq oscon_tstatus_running.
+    endif.
+  endmethod.
+  method poc.
+   if ( cl_os_system=>init_state is initial ) .
+     assert id sos_transaction
+       subkey |INIT_IN_POC({ i_class_name })|
+       condition not cl_system_transaction_state=>get_on_commit( ) = 1.
+    endif.
+  endmethod.
+endclass.
 
 class CL_OS_CA_COMMON definition
   public
@@ -260,9 +289,6 @@ private section.
 *"* private components of class CL_OS_CA_COMMON
 *"* do not include other source files here!!!
 ENDCLASS.
-
-
-
 
 
 CLASS CL_OS_CA_COMMON IMPLEMENTATION.
