@@ -1,3 +1,14 @@
+class lcl_check definition final create private friends cl_os_ca_common.
+  private section.
+    class-methods:
+      transaction
+        importing i_operation type clike
+                  i_class_name type clike,
+      poc
+        importing i_class_name type clike.
+endclass.
+
+
 class CL_OS_CA_COMMON definition
   public
   abstract
@@ -26,7 +37,7 @@ protected section.
   types:
     begin of TYP_OBJECT_INFO ,
       OBJECT_ID     type        TYP_INTERNAL_OID ,
-      OBJECT_IREF   type        TYP_OBJECT_IREF .
+      OBJECT_IREF   type        TYP_OBJECT_IREF ,
       OBJECT_WREF   type ref to CL_ABAP_WEAK_REFERENCE ,
       PM_STATUS     type        OS_OSTATUS ,
       PM_DBSTATUS   type        OS_DSTATUS ,
@@ -249,6 +260,8 @@ private section.
 *"* private components of class CL_OS_CA_COMMON
 *"* do not include other source files here!!!
 ENDCLASS.
+
+
 
 
 
