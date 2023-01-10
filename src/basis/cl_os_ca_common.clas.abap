@@ -1,43 +1,3 @@
-class lcl_check definition final create private friends cl_os_ca_common.
-  private section.
-    class-methods:
-      transaction
-        importing i_operation type clike
-                  i_class_name type clike,
-      poc
-        importing i_class_name type clike.
-endclass.
-
-class lcl_check implementation.
-  method transaction.
-    data: transaction_manager     type ref to if_os_transaction_manager.
-    data: transaction             type ref to if_os_transaction.
-    data: transaction_status      type os_tstatus.
-
-    transaction_manager = cl_os_system=>get_transaction_manager( ).
-    transaction         = transaction_manager->get_top_transaction( ).
-
-    assert id sos_transaction
-      subkey |NO_TRANSACTION| &&
-             |({ i_class_name },{ sy-oncom },{ i_operation })|
-      condition transaction is not initial.
-    if transaction is not initial.
-      transaction_status = transaction->get_status( ).
-      assert id sos_transaction
-        subkey |TRANSACTION_NOT_RUNNING| &&
-               |({ i_class_name },{ transaction_status },{ sy-oncom },{ i_operation })|
-        condition transaction_status eq oscon_tstatus_running.
-    endif.
-  endmethod.
-  method poc.
-   if ( cl_os_system=>init_state is initial ) .
-     assert id sos_transaction
-       subkey |INIT_IN_POC({ i_class_name })|
-       condition not cl_system_transaction_state=>get_on_commit( ) = 1.
-    endif.
-  endmethod.
-endclass.
-
 class CL_OS_CA_COMMON definition
   public
   abstract
@@ -3170,11 +3130,6 @@ method OS_PM_CREATED_PERSISTENT .
   data: UNDO_INFO_ITEM   type TYP_PM_UNDO_INFO,
         TEMP_OBJECT_IREF type TYP_OBJECT_IREF.
 
-* * X. *** consistency check ***
-  call method LCL_CHECK=>TRANSACTION(
-    exporting I_OPERATION = 'CREATE'
-              I_CLASS_NAME = CLASS_INFO-CLASS_NAME ).
-
 * * 1. Create Undo Entry if necessary
   if ( not UNDO_TRANSACTION_STACK is initial ).
 
@@ -3426,11 +3381,6 @@ method OS_PM_DELETED_PERSISTENT .
 
   data: TEMP_OBJECT_IREF type TYP_OBJECT_IREF,
         INVALIDATE_TAB   type TYP_OBJECT_TAB.
-
-* * X. *** RTM check ***
-  call method LCL_CHECK=>TRANSACTION(
-    exporting I_OPERATION = 'DELETE'
-              I_CLASS_NAME = CLASS_INFO-CLASS_NAME ).
 
 * * 1. Undo?
   if ( not UNDO_TRANSACTION_STACK is initial ).
@@ -3895,11 +3845,6 @@ method PM_HANDLER_CHANGED .
 * - 2000-03-02   : (BGR) Initial Version
 ************************************************************************
 
-* * X. *** RTM check ***
-  call method LCL_CHECK=>TRANSACTION(
-    exporting I_OPERATION = 'CHANGED'
-              I_CLASS_NAME = CLASS_INFO-CLASS_NAME ).
-
 * * 1. if STATUS is LOADED, set it to CHANGED
   if ( CURRENT_OBJECT_INFO-PM_STATUS = OSCON_OSTATUS_LOADED ).
     CURRENT_OBJECT_INFO-PM_STATUS = OSCON_OSTATUS_CHANGED.
@@ -4131,8 +4076,6 @@ method REGISTER_CLASS_AGENT .
         UNDO_TRANSACTION_LINE  type        TYP_UNDO_TRANSACTION_ITEM,
         AGENT_IF               type ref to CL_OS_CA_COMMON.
 
-  call method LCL_CHECK=>POC(
-    exporting i_CLASS_NAME = I_CLASS_NAME ).
 *   * *************start of insertion*******************
 *   * X. temporary change: rtm check for init ON COMMIT
 *  data: RTM type ref to object,
