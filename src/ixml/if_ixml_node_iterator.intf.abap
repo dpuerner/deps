@@ -1,9 +1,23 @@
-INTERFACE if_ixml_node_iterator PUBLIC.
+*"* components of interface IF_IXML_NODE_ITERATOR
+interface IF_IXML_NODE_ITERATOR
+  public .
 
-  METHODS reset.
 
-  METHODS get_next
-    RETURNING
-      VALUE(rval) TYPE REF TO if_ixml_node.
+  interfaces IF_IXML_UNKNOWN .
 
-ENDINTERFACE.
+  aliases QUERY_INTERFACE
+    for IF_IXML_UNKNOWN~QUERY_INTERFACE .
+
+  methods GET_FILTER
+    returning
+      value(RVAL) type ref to IF_IXML_NODE_FILTER .
+  methods GET_NEXT
+    returning
+      value(RVAL) type ref to IF_IXML_NODE .
+  methods RESET .
+  methods SET_FILTER
+    importing
+      !FILTER type ref to IF_IXML_NODE_FILTER
+    returning
+      value(RVAL) type I .
+endinterface.

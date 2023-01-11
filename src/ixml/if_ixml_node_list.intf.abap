@@ -1,20 +1,35 @@
-INTERFACE if_ixml_node_list PUBLIC.
+*"* components of interface IF_IXML_NODE_LIST
+interface IF_IXML_NODE_LIST
+  public .
 
-  METHODS:
-    get_length
-      RETURNING
-        VALUE(length) TYPE i,
-    create_iterator
-      RETURNING VALUE(rval) TYPE REF TO if_ixml_node_iterator,
-    get_item
-      IMPORTING
-        index TYPE REF TO i
-      RETURNING
-        VALUE(val) TYPE REF TO if_ixml_node,
-    create_rev_iterator_filtered
-      IMPORTING
-        filter TYPE any
-      RETURNING
-        VALUE(val) TYPE REF TO if_ixml_node_iterator.
 
-ENDINTERFACE.
+  interfaces IF_IXML_UNKNOWN .
+
+  aliases QUERY_INTERFACE
+    for IF_IXML_UNKNOWN~QUERY_INTERFACE .
+
+  methods CREATE_ITERATOR
+    returning
+      value(RVAL) type ref to IF_IXML_NODE_ITERATOR .
+  methods CREATE_ITERATOR_FILTERED
+    importing
+      !FILTER type ref to IF_IXML_NODE_FILTER
+    returning
+      value(RVAL) type ref to IF_IXML_NODE_ITERATOR .
+  methods CREATE_REV_ITERATOR
+    returning
+      value(RVAL) type ref to IF_IXML_NODE_ITERATOR .
+  methods CREATE_REV_ITERATOR_FILTERED
+    importing
+      !FILTER type ref to IF_IXML_NODE_FILTER
+    returning
+      value(RVAL) type ref to IF_IXML_NODE_ITERATOR .
+  methods GET_ITEM
+    importing
+      !INDEX type I
+    returning
+      value(RVAL) type ref to IF_IXML_NODE .
+  methods GET_LENGTH
+    returning
+      value(RVAL) type I .
+endinterface.
