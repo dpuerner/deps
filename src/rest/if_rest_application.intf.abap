@@ -1,5 +1,9 @@
-INTERFACE if_rest_application PUBLIC.
+*"* components of interface IF_REST_APPLICATION
+interface IF_REST_APPLICATION
+  public .
 
-  METHODS get_root_handler RETURNING VALUE(ro_root_handler) TYPE REF TO if_rest_handler.
 
-ENDINTERFACE.
+  methods GET_ROOT_HANDLER
+    returning
+      value(RO_ROOT_HANDLER) type ref to IF_REST_HANDLER .
+endinterface.
