@@ -1,23 +1,18 @@
-INTERFACE if_t100_message PUBLIC.
+interface IF_T100_MESSAGE
+  public .
 
-  INTERFACES if_message.
 
-  DATA: BEGIN OF t100key,
-          msgid TYPE string,
-          msgno TYPE string,
-          attr1 TYPE string,
-          attr2 TYPE string,
-          attr3 TYPE string,
-          attr4 TYPE string,
-        END OF t100key.
+  interfaces IF_MESSAGE .
 
-  CONSTANTS: BEGIN OF default_textid,
-          msgid TYPE string VALUE 'AA',
-          msgno TYPE string VALUE '123',
-          attr1 TYPE string VALUE '',
-          attr2 TYPE string VALUE '',
-          attr3 TYPE string VALUE '',
-          attr4 TYPE string VALUE '',
-        END OF default_textid.
+  constants:
+    begin of default_textid,
+      msgid type symsgid value 'SY',
+      msgno type symsgno value '530',
+      attr1 type scx_attrname value '',
+      attr2 type scx_attrname value '',
+      attr3 type scx_attrname value '',
+      attr4 type scx_attrname value '',
+    end of default_textid.
 
-ENDINTERFACE.
+  data T100KEY type SCX_T100KEY .
+endinterface.
