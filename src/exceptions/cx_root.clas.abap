@@ -1,36 +1,57 @@
-CLASS cx_root DEFINITION ABSTRACT PUBLIC.
+class CX_ROOT definition
+  public
+  abstract
+  create public .
 
-  PUBLIC SECTION.
+*"* public components of class CX_ROOT
+*"* do not include other source files here!!!
+public section.
 
-    INTERFACES if_message.
-    INTERFACES if_serializable_object.
+  interfaces IF_MESSAGE .
+  interfaces IF_SERIALIZABLE_OBJECT .
 
-    ALIASES get_longtext FOR if_message~get_longtext.
-    ALIASES get_text FOR if_message~get_text.
-	
-    DATA textid TYPE c LENGTH 32.
-    DATA previous TYPE REF TO cx_root.
-	DATA kernel_errid TYPE s380errid READ-ONLY.
-    DATA is_resumable TYPE abap_bool.
+  aliases GET_LONGTEXT
+    for IF_MESSAGE~GET_LONGTEXT .
+  aliases GET_TEXT
+    for IF_MESSAGE~GET_TEXT .
 
-    METHODS get_source_position
-      EXPORTING
-        program_name TYPE sy-repid
-        include_name TYPE sy-repid
-        source_line TYPE i.
+  constants CX_ROOT type SOTR_CONC value '16AA9A3937A9BB56E10000000A11447B'. "#EC NOTEXT
+  data TEXTID type SOTR_CONC read-only .
+  data PREVIOUS type ref to CX_ROOT read-only .
+  data KERNEL_ERRID type S380ERRID read-only .
+  type-pools ABAP .
+  data IS_RESUMABLE type ABAP_BOOL read-only .
 
+  methods CONSTRUCTOR
+    importing
+      !TEXTID like TEXTID optional
+      !PREVIOUS like PREVIOUS optional .
+  methods GET_SOURCE_POSITION
+    exporting
+      !PROGRAM_NAME type SYREPID
+      !INCLUDE_NAME type SYREPID
+      !SOURCE_LINE type I .
+protected section.
+*"* protected components of class CX_ROOT
+*"* do not include other source files here!!!
+private section.
+*"* private components of class CX_ROOT
+*"* do not include other source files here!!!
+
+  data INTERNAL_SOURCE_POS type SCX_SRCPOS .
 ENDCLASS.
 
-CLASS cx_root IMPLEMENTATION.
-  METHOD if_message~get_text.
-    RETURN.
-  ENDMETHOD.
+CLASS CX_ROOT IMPLEMENTATION.
 
-  METHOD get_source_position.
-    RETURN.
-  ENDMETHOD.
+METHOD constructor.
+ENDMETHOD.
 
-  METHOD if_message~get_longtext.
-    RETURN.
-  ENDMETHOD.
+METHOD get_source_position.
+endmethod.
+
+METHOD if_message~get_longtext .
+ENDMETHOD.
+
+METHOD if_message~get_text .
+ENDMETHOD.
 ENDCLASS.
