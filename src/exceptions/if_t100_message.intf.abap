@@ -15,4 +15,5 @@ interface IF_T100_MESSAGE
     end of default_textid.
 
   data T100KEY type SCX_T100KEY .
+  
 endinterface.
