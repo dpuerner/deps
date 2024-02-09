@@ -1,24 +1,33 @@
-CLASS cx_static_check DEFINITION PUBLIC INHERITING FROM cx_root CREATE PUBLIC ABSTRACT.
+class CX_STATIC_CHECK definition
+  public
+  inheriting from CX_ROOT
+  abstract
+  create public .
 
-  PUBLIC SECTION.
-    METHODS constructor
-      IMPORTING
-        textid LIKE textid OPTIONAL
-        previous LIKE previous OPTIONAL.
-    METHODS get_source_position ABSTRACT
-      EXPORTING
-        program_name TYPE string
-        include_name TYPE string
-        source_line TYPE string.
-  PROTECTED SECTION.
-  PRIVATE SECTION.
+*"* public components of class CX_STATIC_CHECK
+*"* do not include other source files here!!!
+public section.
 
+  methods CONSTRUCTOR
+    importing
+      !TEXTID like TEXTID optional
+      !PREVIOUS like PREVIOUS optional .
+protected section.
+*"* protected components of class CX_STATIC_CHECK
+*"* do not include other source files here!!!
+private section.
 ENDCLASS.
 
-CLASS cx_static_check IMPLEMENTATION.
 
-  METHOD constructor.
-    RETURN.
-  ENDMETHOD.
 
+CLASS CX_STATIC_CHECK IMPLEMENTATION.
+
+
+method CONSTRUCTOR .
+CALL METHOD SUPER->CONSTRUCTOR
+EXPORTING
+TEXTID = TEXTID
+PREVIOUS = PREVIOUS
+.
+endmethod.
 ENDCLASS.
